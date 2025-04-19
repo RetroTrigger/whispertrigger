@@ -11,7 +11,7 @@ import logging
 from pathlib import Path
 from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PyQt6.QtGui import QIcon, QAction
-from PyQt6.QtCore import QThread, pyqtSignal, Qt
+from PyQt6.QtCore import QThread, pyqtSignal, Qt, QSize
 
 from transcription_engine import TranscriptionEngine
 from keyboard_listener import KeyboardListener
@@ -131,43 +131,141 @@ class WhisperTrigger(QApplication):
         """Initialize system tray icon and menu"""
         # Create tray icon
         self.tray_icon = QSystemTrayIcon(self)
-        icon_path = os.path.join(os.path.dirname(__file__), "../resources/icon.png")
-        if os.path.exists(icon_path):
-            self.tray_icon.setIcon(QIcon(icon_path))
+        
+        # Look for icons in different sizes for better scaling
+        icon_sizes = [32, 64, 128, 256]
+        icon_paths = {}
+        
+        # Try multiple possible locations for the icons
+        possible_resource_dirs = [
+            os.path.join(os.path.dirname(__file__), "../resources"),  # Regular path
+            os.path.join(os.path.dirname(__file__), "resources"),     # Direct subdirectory
+            "/usr/share/icons/hicolor/256x256/apps",                  # AppImage standard location
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "../../resources")),  # AppImage relative path
+        ]
+        
+        # Log possible locations for debugging
+        logger.debug(f"Searching for icons in: {possible_resource_dirs}")
+        
+        for size in icon_sizes:
+            icon_found = False
+            
+            for resource_dir in possible_resource_dirs:
+                if size == 256:
+                    path = os.path.join(resource_dir, "icon.png")
+                    alt_path = os.path.join(resource_dir, "whispertrigger.png")  # AppImage name
+                else:
+                    path = os.path.join(resource_dir, f"icon_{size}.png")
+                    alt_path = os.path.join(resource_dir, f"whispertrigger_{size}.png")  # AppImage name
+                
+                if os.path.exists(path):
+                    icon_paths[size] = path
+                    logger.debug(f"Found icon at: {path}")
+                    icon_found = True
+                    break
+                elif os.path.exists(alt_path):
+                    icon_paths[size] = alt_path
+                    logger.debug(f"Found icon at: {alt_path}")
+                    icon_found = True
+                    break
+            
+            if not icon_found:
+                logger.warning(f"Could not find icon for size {size}px")
+        
+        if icon_paths:
+            # Create a QIcon with multiple sizes for better scaling
+            icon = QIcon()
+            for size, path in icon_paths.items():
+                icon.addFile(path, QSize(size, size))
+                logger.debug(f"Added icon size {size}px from {path}")
+            
+            self.tray_icon.setIcon(icon)
+            logger.info(f"Using custom icon with sizes: {list(icon_paths.keys())}")
+            
+            # Check if icon was set correctly
+            if self.tray_icon.icon().isNull():
+                logger.error("Failed to set custom icon - icon is null after setting")
+            else:
+                logger.debug("Custom icon set successfully")
         else:
             # Use fallback icon
             from PyQt6.QtWidgets import QStyle
-            self.tray_icon.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation))
+            logger.warning("No custom icons found, using fallback icon")
+            
+            try:
+                fallback_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation)
+                self.tray_icon.setIcon(fallback_icon)
+                
+                if self.tray_icon.icon().isNull():
+                    logger.error("Failed to set fallback icon - icon is null after setting")
+                else:
+                    logger.debug("Fallback icon set successfully")
+            except Exception as e:
+                logger.error(f"Error setting fallback icon: {e}")
         
-        # Create tray menu
-        tray_menu = QMenu()
+        # Check if system tray is available
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            logger.error("System tray is not available on this system")
+        else:
+            logger.debug("System tray is available")
         
-        # Add actions
-        start_action = QAction("Start Recording", self)
-        start_action.triggered.connect(self.toggle_recording)
-        tray_menu.addAction(start_action)
-        
-        settings_action = QAction("Settings", self)
-        settings_action.triggered.connect(self.show_settings)
-        tray_menu.addAction(settings_action)
-        
-        tray_menu.addSeparator()
-        
-        quit_action = QAction("Quit", self)
-        quit_action.triggered.connect(self.quit)
-        tray_menu.addAction(quit_action)
-        
-        # Set tray menu
-        self.tray_icon.setContextMenu(tray_menu)
-        self.tray_icon.show()
+        try:
+            # Create tray menu
+            logger.debug("Creating tray menu")
+            tray_menu = QMenu()
+            
+            # Add actions
+            start_action = QAction("Start Recording", self)
+            start_action.triggered.connect(self.toggle_recording)
+            tray_menu.addAction(start_action)
+            logger.debug("Added 'Start Recording' action")
+            
+            settings_action = QAction("Settings", self)
+            settings_action.triggered.connect(self.show_settings)
+            tray_menu.addAction(settings_action)
+            logger.debug("Added 'Settings' action")
+            
+            tray_menu.addSeparator()
+            
+            quit_action = QAction("Quit", self)
+            quit_action.triggered.connect(self.quit)
+            tray_menu.addAction(quit_action)
+            logger.debug("Added 'Quit' action")
+            
+            # Set tray menu
+            self.tray_icon.setContextMenu(tray_menu)
+            logger.debug("Set tray context menu")
+            
+            # Make sure the tray icon is visible
+            self.tray_icon.show()
+            logger.info("Tray icon should now be visible")
+            
+            # Force the icon to update
+            self.tray_icon.setVisible(False)
+            self.tray_icon.setVisible(True)
+            
+        except Exception as e:
+            logger.error(f"Error initializing tray menu: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
         
         # Show startup message
-        self.tray_icon.showMessage(
-            "WhisperTrigger",
-            "WhisperTrigger is running. Press Alt+R to start recording.",
-            QSystemTrayIcon.MessageIcon.Information,
-            3000
-        )
+        try:
+            if self.tray_icon.isSystemTrayAvailable() and self.tray_icon.supportsMessages():
+                logger.debug("Showing startup notification")
+                self.tray_icon.showMessage(
+                    "WhisperTrigger",
+                    "WhisperTrigger is running. Press Alt+R to start recording.",
+                    QSystemTrayIcon.MessageIcon.Information,
+                    3000
+                )
+                logger.debug("Startup notification sent")
+            else:
+                logger.warning("System tray doesn't support notifications")
+        except Exception as e:
+            logger.error(f"Error showing notification: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
     
     def init_keyboard_shortcuts(self):
         """Initialize global keyboard shortcuts"""

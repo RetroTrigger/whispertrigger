@@ -33,16 +33,22 @@ class WaveformWidget(QWidget):
         self.smoothing_factor = 0.3  # Lower = smoother
         
         # Animation properties
-        self._glow_intensity = 0.0
+        self._glow_intensity = 0.0  # Initialize with a safe default value
+        
         # Create animation manually without using property name
-        self.glow_animation = QPropertyAnimation(self)
-        self.glow_animation.setTargetObject(self)
-        self.glow_animation.setDuration(1000)
-        self.glow_animation.setStartValue(0.0)
-        self.glow_animation.setEndValue(1.0)
-        self.glow_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
-        self.glow_animation.setLoopCount(-1)  # Infinite loop
-        self.glow_animation.valueChanged.connect(self.set_glow_intensity)
+        try:
+            self.glow_animation = QPropertyAnimation(self)
+            self.glow_animation.setTargetObject(self)
+            self.glow_animation.setDuration(1000)
+            self.glow_animation.setStartValue(0.0)
+            self.glow_animation.setEndValue(1.0)
+            self.glow_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+            self.glow_animation.setLoopCount(-1)  # Infinite loop
+            self.glow_animation.valueChanged.connect(self.set_glow_intensity)
+        except Exception as e:
+            print(f"Error initializing glow animation: {e}")
+            # Provide a dummy animation that won't cause crashes
+            self.glow_animation = QPropertyAnimation(self)
         
         # Timer for animation updates
         self.animation_timer = QTimer(self)
@@ -76,8 +82,12 @@ class WaveformWidget(QWidget):
         # Position widget at the bottom center of the screen
         self.position_widget()
         
-        # Start animations
-        self.glow_animation.start()
+        # Start animations with error handling
+        try:
+            if self.glow_animation and not self.glow_animation.state():
+                self.glow_animation.start()
+        except Exception as e:
+            print(f"Error starting glow animation: {e}")
     
     def position_widget(self):
         """Position the widget at the bottom center of the screen"""
@@ -217,7 +227,10 @@ class WaveformWidget(QWidget):
         """
         # Set up glow pen
         glow_color = QColor(self.waveform_color)
-        glow_color.setAlpha(int(50 * self.glow_intensity))
+        
+        # Safety check to prevent NoneType error
+        intensity = self.glow_intensity if self.glow_intensity is not None else 0.0
+        glow_color.setAlpha(int(50 * intensity))
         
         glow_pen = QPen(glow_color)
         glow_pen.setWidth(10)
@@ -232,11 +245,13 @@ class WaveformWidget(QWidget):
     
     def get_glow_intensity(self):
         """Get the glow intensity property"""
-        return self._glow_intensity
+        # Ensure we never return None
+        return 0.0 if self._glow_intensity is None else self._glow_intensity
     
     def set_glow_intensity(self, intensity):
         """Set the glow intensity property"""
-        self._glow_intensity = intensity
+        # Ensure we never set None
+        self._glow_intensity = 0.0 if intensity is None else float(intensity)
         self.update()
     
     # Define property for animation

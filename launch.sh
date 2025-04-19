@@ -74,13 +74,31 @@ check_dependencies() {
 # Run dependency check
 check_dependencies
 
+# Check for NVIDIA GPU
+check_nvidia_gpu() {
+    if command -v nvidia-smi &> /dev/null; then
+        if nvidia-smi -L &> /dev/null; then
+            return 0  # NVIDIA GPU found
+        fi
+    fi
+    return 1  # No NVIDIA GPU found
+}
+
 # Check if virtual environment exists
 if [ ! -d "venv" ]; then
     echo "Creating virtual environment..."
     python3 -m venv venv
     source venv/bin/activate
     echo "Installing dependencies..."
-    pip install -r requirements.txt
+    
+    # Choose requirements file based on GPU presence
+    if check_nvidia_gpu; then
+        echo "NVIDIA GPU detected, installing with CUDA support..."
+        pip install -r requirements.txt
+    else
+        echo "No NVIDIA GPU detected, installing CPU-only version..."
+        pip install -r requirements-cpu.txt
+    fi
 else
     source venv/bin/activate
 fi
@@ -90,11 +108,15 @@ mkdir -p resources
 
 # Check if icon exists
 if [ ! -f "resources/icon.png" ]; then
-    echo "Creating default icon..."
-    # Create a simple icon using imagemagick if available
-    if command -v convert &> /dev/null; then
-        convert -size 128x128 radial-gradient:blue-purple resources/icon.png
+    echo "Creating custom icon..."
+    # Check if we have pillow installed
+    if ! python3 -c "import PIL" &> /dev/null; then
+        echo "Installing Pillow for icon generation..."
+        pip install pillow
     fi
+    
+    # Generate the icon using our custom script
+    python3 create_icon.py
 fi
 
 # Run the application

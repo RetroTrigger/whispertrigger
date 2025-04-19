@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+
+# AppImage build files
+WhisperTrigger.AppDir/
+*.AppImage
+AppDir/
+
+# Temporary files
+/tmp/
+*.tmp
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Audio files
+*.wav
+*.mp3
+*.ogg
+
+# Models
+models/
