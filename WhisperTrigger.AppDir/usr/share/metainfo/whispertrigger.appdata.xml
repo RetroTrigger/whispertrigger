@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.whispertrigger</id>
+  <name>WhisperTrigger</name>
+  <summary>Speech-to-text application using OpenAI's Whisper</summary>
+  <description>
+    <p>
+      WhisperTrigger is an open-source speech-to-text application for Linux that uses
+      OpenAI's Whisper model to transcribe speech with high accuracy.
+    </p>
+    <p>
+      Features include real-time transcription, multiple processing modes, global
+      keyboard shortcuts, and visual feedback with waveform visualization.
+    </p>
+  </description>
+  <categories>
+    <category>Utility</category>
+    <category>Audio</category>
+  </categories>
+  <url type="homepage">https://github.com/yourusername/whispertrigger</url>
+  <provides>
+    <binary>whispertrigger</binary>
+  </provides>
+  <releases>
+    <release version="1.0.0" date="2025-04-19">
+      <description>
+        <p>Initial release</p>
+      </description>
+    </release>
+  </releases>
+  <content_rating type="oars-1.1" />
+</component>

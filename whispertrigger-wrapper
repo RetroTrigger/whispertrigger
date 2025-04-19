@@ -1,0 +1,8 @@
+#!/bin/bash
+# Wrapper script for WhisperTrigger Flatpak
+
+# Set Python path to include our application
+export PYTHONPATH="/app/lib:$PYTHONPATH"
+
+# Run the main application
+python3 /app/lib/whispertrigger/main.py "$@"

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=WhisperTrigger
+Comment=Speech-to-text application using OpenAI's Whisper
+Exec=whispertrigger-wrapper
+Icon=io.github.whispertrigger
+Terminal=false
+Type=Application
+Categories=Utility;Audio;
+Keywords=speech;voice;transcription;whisper;

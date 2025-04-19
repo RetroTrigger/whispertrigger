@@ -1,0 +1,15 @@
+[Unit]
+Description=WhisperTrigger Speech-to-Text Service
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=%h/.Xauthority
+ExecStart=/bin/bash -c 'cd %h/Documents/Github/whispertrigger && ./launch.sh'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

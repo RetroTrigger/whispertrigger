@@ -1,0 +1,109 @@
+app-id: io.github.whispertrigger
+runtime: org.freedesktop.Platform
+runtime-version: '22.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.python3
+command: whispertrigger-wrapper
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=pulseaudio
+  - --share=network
+  - --device=dri
+  - --filesystem=home
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --talk-name=org.freedesktop.portal.Desktop
+modules:
+  - name: python-deps
+    buildsystem: simple
+    build-commands:
+      - pip3 install --no-index --find-links="file://${PWD}" --prefix=${FLATPAK_DEST} faster-whisper torch torchaudio numpy sounddevice PyQt6 pyaudio python-dotenv pydub pyperclip python-xlib pynput transformers ffmpeg-python
+    sources:
+      - type: file
+        url: https://files.pythonhosted.org/packages/packages/faster_whisper-1.1.1-py3-none-any.whl
+        sha256: 1a4f9a1a3c7b1fef2d2a36d7471fbe6a21d0f2fbc40e4db7d9557889f6fc7d6f
+      # Add more Python package URLs here...
+
+  - name: ffmpeg
+    buildsystem: autotools
+    sources:
+      - type: archive
+        url: https://ffmpeg.org/releases/ffmpeg-6.0.tar.xz
+        sha256: 57be87c22d9b49c112b6d24bc67d42508660e6b718b3db89c44e47e289137082
+    config-opts:
+      - --disable-debug
+      - --disable-doc
+      - --disable-static
+      - --enable-shared
+      - --enable-gpl
+      - --enable-version3
+      - --enable-nonfree
+      - --enable-libmp3lame
+      - --enable-libvorbis
+      - --enable-libvpx
+      - --enable-libx264
+      - --enable-libx265
+      - --enable-libopus
+      - --enable-libtheora
+      - --enable-libwebp
+      - --enable-libass
+      - --enable-libfreetype
+      - --enable-libfontconfig
+      - --enable-libfribidi
+      - --enable-libvidstab
+      - --enable-libsoxr
+      - --enable-postproc
+      - --enable-avfilter
+      - --enable-pthreads
+      - --enable-runtime-cpudetect
+
+  - name: portaudio
+    buildsystem: autotools
+    sources:
+      - type: archive
+        url: http://files.portaudio.com/archives/pa_stable_v190700_20210406.tgz
+        sha256: 47efbf42c77c19a05d22e627d42873e991ec0c1357219c0d74ce6a2948cb2def
+
+  - name: xdotool
+    buildsystem: simple
+    build-commands:
+      - make
+      - make install PREFIX=${FLATPAK_DEST}
+    sources:
+      - type: archive
+        url: https://github.com/jordansissel/xdotool/releases/download/v3.20211022.1/xdotool-3.20211022.1.tar.gz
+        sha256: 82b15a944a5e82fee0e5994eba2ee1fc1d6a39f5588ac4755754c0c82a5d2abe
+    modules:
+      - name: libxkbcommon
+        buildsystem: meson
+        sources:
+          - type: archive
+            url: https://xkbcommon.org/download/libxkbcommon-1.4.1.tar.xz
+            sha256: 943c07a1e2198026d8102b17270a1f406e4d3d6bbc4ae105b9e1b82d7d136b39
+
+  - name: whispertrigger
+    buildsystem: simple
+    build-commands:
+      - mkdir -p ${FLATPAK_DEST}/bin
+      - mkdir -p ${FLATPAK_DEST}/share/applications
+      - mkdir -p ${FLATPAK_DEST}/share/icons/hicolor/256x256/apps
+      - mkdir -p ${FLATPAK_DEST}/share/metainfo
+      - mkdir -p ${FLATPAK_DEST}/lib/whispertrigger
+      - cp -r src/* ${FLATPAK_DEST}/lib/whispertrigger/
+      - install -Dm755 whispertrigger-wrapper ${FLATPAK_DEST}/bin/whispertrigger-wrapper
+      - install -Dm644 resources/icon.png ${FLATPAK_DEST}/share/icons/hicolor/256x256/apps/io.github.whispertrigger.png
+      - install -Dm644 io.github.whispertrigger.desktop ${FLATPAK_DEST}/share/applications/io.github.whispertrigger.desktop
+      - install -Dm644 io.github.whispertrigger.appdata.xml ${FLATPAK_DEST}/share/metainfo/io.github.whispertrigger.appdata.xml
+    sources:
+      - type: dir
+        path: src
+      - type: dir
+        path: resources
+      - type: file
+        path: io.github.whispertrigger.desktop
+      - type: file
+        path: io.github.whispertrigger.appdata.xml
+      - type: file
+        path: whispertrigger-wrapper
